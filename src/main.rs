@@ -1,5 +1,6 @@
 use std::io::Read;
-use std::net::TcpListener;
+use std::net::{Shutdown, TcpListener, TcpStream};
+use std::thread;
 
 fn main() {
     println!("Hello, TCP!");
@@ -7,25 +8,33 @@ fn main() {
 
     for stream in listener.incoming() {
         match stream {
-            Ok(mut stream) => {
-                let mut buf = [0; 128];
-                println!("stream: {stream:?}");
+            Ok(stream) => {
+                thread::spawn(|| handle_connection(stream));
+            }
+            Err(e) => println!("stream error: {e:?}"),
+        }
+    }
+}
 
-                loop {
-                    match stream.read(&mut buf) {
-                        Ok(len) => {
-                            let msg = std::str::from_utf8(&buf[0..len]).unwrap();
-                            println!("message: {msg}");
+fn handle_connection(mut stream: TcpStream) {
+    let mut buf = [0; 128];
+    println!("stream: {stream:?}");
+    loop {
+        // need to check if stream is still open
 
-                            if msg == "quit" {
-                                break;
-                            }
-                        }
-                        Err(_) => todo!(),
+        match stream.read(&mut buf) {
+            Ok(len) => {
+                let msg = std::str::from_utf8(&buf[0..len]).unwrap();
+                println!("message: {msg}");
+
+                if msg == "quit" {
+                    match stream.shutdown(Shutdown::Both) {
+                        Ok(_) => break,
+                        Err(_) => break,
                     }
                 }
             }
-            Err(e) => println!("stream error: {e:?}"),
+            Err(_) => todo!(),
         }
     }
 }
