@@ -20,11 +20,14 @@ fn handle_connection(mut stream: TcpStream) {
     let mut buf = [0; 128];
     println!("stream: {stream:?}");
     loop {
-        // need to check if stream is still open
-
         match stream.read(&mut buf) {
             Ok(len) => {
-                let msg = std::str::from_utf8(&buf[0..len]).unwrap();
+                if len == 0 {
+                    println!("goodbye!");
+                    break;
+                }
+
+                let msg = std::str::from_utf8(&buf[0..len]).unwrap().trim();
                 println!("message: {msg}");
 
                 if msg == "quit" {
@@ -34,7 +37,9 @@ fn handle_connection(mut stream: TcpStream) {
                     }
                 }
             }
-            Err(_) => todo!(),
+            Err(e) => {
+                println!("error when reading: {}", e);
+            }
         }
     }
 }
