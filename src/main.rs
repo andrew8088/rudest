@@ -1,4 +1,4 @@
-use std::io::Read;
+use std::io::{Read, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::thread;
 
@@ -11,7 +11,7 @@ fn main() {
             Ok(stream) => {
                 thread::spawn(|| handle_connection(stream));
             }
-            Err(e) => println!("stream error: {e:?}"),
+            Err(err) => println!("stream error: {}", err),
         }
     }
 }
@@ -28,7 +28,16 @@ fn handle_connection(mut stream: TcpStream) {
                 }
 
                 let msg = std::str::from_utf8(&buf[0..len]).unwrap().trim();
-                println!("message: {msg}");
+                println!("message: {}", msg);
+
+                match stream.write(&buf[0..len]) {
+                    Ok(len) => {
+                        println!("sent length {}", len);
+                    }
+                    Err(err) => {
+                        println!("error when writing: {}", err);
+                    }
+                }
 
                 if msg == "quit" {
                     match stream.shutdown(Shutdown::Both) {
@@ -37,8 +46,8 @@ fn handle_connection(mut stream: TcpStream) {
                     }
                 }
             }
-            Err(e) => {
-                println!("error when reading: {}", e);
+            Err(err) => {
+                println!("error when reading: {}", err);
             }
         }
     }
