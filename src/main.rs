@@ -1,7 +1,10 @@
+use crate::datatypes::process_command;
 use std::env;
 use std::io::{Read, Write};
 use std::net::{Shutdown, TcpListener, TcpStream};
 use std::thread;
+
+pub mod datatypes;
 
 const MAX_MESSAGE_SIZE: usize = 128;
 
@@ -40,60 +43,28 @@ fn handle_connection(mut stream: TcpStream) {
                 }
 
                 process_command(&buf[0..len]);
-                // match std::str::from_utf8(&buf[0..len]) {
-                //     Ok(msg) => {
-                //         // match stream.write(&buf[0..len]) {
-                //         //     Ok(len) => {
-                //         //         println!("sent length {}", len);
-                //         //     }
-                //         //     Err(err) => println!("error writing: {}", err),
-                //         // }
 
-                //         // if trimmed_msg == "quit" {
-                //         //     match stream.shutdown(Shutdown::Both) {
-                //         //         Ok(_) => break,
-                //         //         Err(err) => println!("error shutting down stream: {}", err),
-                //         //     }
-                //         // }
-                //     }
-                //     Err(err) => println!("error receiving message: {}", err),
-                // }
+                match std::str::from_utf8(&buf[0..len]) {
+                    Ok(msg) => {
+                        println!("msg: {}", msg);
+                        match stream.write(&buf[0..len]) {
+                            Ok(len) => {
+                                println!("sent length {}", len);
+                            }
+                            Err(err) => println!("error writing: {}", err),
+                        }
+
+                        if msg.trim() == "quit" {
+                            match stream.shutdown(Shutdown::Both) {
+                                Ok(_) => break,
+                                Err(err) => println!("error shutting down stream: {}", err),
+                            }
+                        }
+                    }
+                    Err(err) => println!("error receiving message: {}", err),
+                }
             }
             Err(err) => println!("error reading: {}", err),
         }
-    }
-}
-
-#[derive(Debug)]
-enum DataType {
-    SimpleString, // +
-    RedisError,   // -
-    Integer,      // :
-    BulkString,   // $
-    Array,        // *
-}
-
-impl TryFrom<char> for DataType {
-    type Error = String;
-
-    fn try_from(value: char) -> Result<Self, Self::Error> {
-        match value {
-            '+' => Ok(DataType::SimpleString),
-            '-' => Ok(DataType::RedisError),
-            ':' => Ok(DataType::Integer),
-            '$' => Ok(DataType::BulkString),
-            '*' => Ok(DataType::Array),
-            _ => Err(format!("char [{}] is not a valid redis data type", value)),
-        }
-    }
-}
-
-fn process_command(command: &[u8]) {
-    let data_type_char = command[0];
-    let data_type = DataType::try_from(data_type_char as char);
-
-    match DataType::try_from(data_type_char as char) {
-        Ok(data_type) => todo!(),
-        Err(_) => todo!(),
     }
 }
