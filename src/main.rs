@@ -42,7 +42,7 @@ fn handle_connection(mut stream: TcpStream) {
                     break;
                 }
 
-                process_command(&buf[0..len]);
+                let out = process_command(&buf[0..len]);
 
                 match std::str::from_utf8(&buf[0..len]) {
                     Ok(msg) => {

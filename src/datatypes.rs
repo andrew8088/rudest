@@ -23,15 +23,27 @@ pub const CRLF: &str = "\r\n";
 //         }
 //     }
 // }
-
-pub fn process_command(command: &[u8]) -> Option<DataType> {
+pub fn process_command(command: &[u8]) -> Result<DataType, String> {
     let token = command[0] as char;
     let rest = std::str::from_utf8(&command[1..]);
 
     match (token, rest) {
-        ('+', Ok(body)) => Some(DataType::SimpleString(body.trim().to_string())),
-        ('-', Ok(body)) => Some(DataType::SimpleString(body.trim().to_string())),
-        _ => None,
+        ('+', Ok(body)) => to_string(body),
+        (':', Ok(body)) => to_integer(body),
+        _ => Err(format!("unknown command: {}", token)),
+    }
+}
+
+fn to_string(body: &str) -> Result<DataType, String> {
+    Ok(DataType::SimpleString(body.trim().to_string()))
+}
+
+fn to_integer(body: &str) -> Result<DataType, String> {
+    let trimmed_body = body.trim();
+
+    match trimmed_body.parse::<usize>() {
+        Ok(integer) => Ok(DataType::Integer(integer)),
+        Err(_) => Err(format!("unparsable integer: {}", trimmed_body)),
     }
 }
 
@@ -58,6 +70,15 @@ mod tests {
             assert_eq!(body, 1000);
         } else {
             panic!("{:?} did not contain \"{}\"", out, "OK");
+        }
+    }
+
+    #[test]
+    fn it_handles_unparsable_numbers() {
+        let input = format!(":one{}", CRLF);
+        match process_command(input.as_bytes()) {
+            Ok(_) => panic!("expected error"),
+            Err(msg) => assert_eq!(msg, "unparsable integer: one"),
         }
     }
 }
