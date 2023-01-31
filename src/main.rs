@@ -14,21 +14,21 @@ fn main() {
     match env::var("RUDEST_PORT").or(default_port) {
         Ok(port_string) => match port_string.parse::<usize>() {
             Ok(port) => {
-                let listener = TcpListener::bind(format!("127.0.0.1:{}", port)).unwrap();
-                println!("listening on port {}", port);
+                let listener = TcpListener::bind(format!("127.0.0.1:{port}")).unwrap();
+                println!("listening on port {port}");
 
                 for stream in listener.incoming() {
                     match stream {
                         Ok(stream) => {
                             thread::spawn(|| handle_connection(stream));
                         }
-                        Err(err) => println!("error opening stream: {}", err),
+                        Err(err) => println!("error opening stream: {err}"),
                     }
                 }
             }
-            Err(err) => println!("error parsing port: {}", err),
+            Err(err) => println!("error parsing port: {err}"),
         },
-        Err(err) => println!("error getting port: {}", err),
+        Err(err) => println!("error getting port: {err}"),
     }
 }
 
@@ -42,29 +42,29 @@ fn handle_connection(mut stream: TcpStream) {
                     break;
                 }
 
-                let out = process_command(&buf[0..len]);
+                let _out = process_command(&buf[0..len]);
 
                 match std::str::from_utf8(&buf[0..len]) {
                     Ok(msg) => {
-                        println!("msg: {}", msg);
+                        println!("msg: {msg}");
                         match stream.write(&buf[0..len]) {
                             Ok(len) => {
-                                println!("sent length {}", len);
+                                println!("sent length {len}");
                             }
-                            Err(err) => println!("error writing: {}", err),
+                            Err(err) => println!("error writing: {err}"),
                         }
 
                         if msg.trim() == "quit" {
                             match stream.shutdown(Shutdown::Both) {
                                 Ok(_) => break,
-                                Err(err) => println!("error shutting down stream: {}", err),
+                                Err(err) => println!("error shutting down stream: {err}"),
                             }
                         }
                     }
-                    Err(err) => println!("error receiving message: {}", err),
+                    Err(err) => println!("error receiving message: {err}"),
                 }
             }
-            Err(err) => println!("error reading: {}", err),
+            Err(err) => println!("error reading: {err}"),
         }
     }
 }
